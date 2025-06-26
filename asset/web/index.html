@@ -454,7 +454,7 @@
                 this.statusDot.classList.add('connected');
                 this.statusText.textContent = `Connected (${this.baudRateSelect.value} bps)`;
 
-                this.socket = new WebSocket('ws://localhost:3000/ws');
+                this.socket = new WebSocket('ws://' + (new URL(window.location.href).host) + '/ws');
                 this.socket.onopen = () => this.connected();
                 this.socket.onmessage = (e) => this.messageIn(e);
                 this.socket.onclose = () => this.close();
