@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <DNSServer.h>
 #include "driver/gpio.h"
 #include "driver/twai.h"
 
@@ -9,34 +10,46 @@
 
 // WiFi AP Mode
 const char* ssid = "ESP32-CAN";
+const byte DNS_PORT = 53;
+IPAddress apIP(192, 168, 4, 1);
 
 // WebSocket server
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
+DNSServer dns;
 
-// ตั้งค่า CAN
-void setupCAN() {
-  twai_general_config_t g_config = {
-    .mode = TWAI_MODE_NORMAL,
-    .tx_io = GPIO_NUM_5,
-    .rx_io = GPIO_NUM_4,
-    .clkout_io = TWAI_IO_UNUSED,
-    .bus_off_io = TWAI_IO_UNUSED,
-    .tx_queue_len = 10,
-    .rx_queue_len = 10,
-    .alerts_enabled = TWAI_ALERT_NONE,
-    .clkout_divider = 0
-  };
+void changeTWAIBaudrate(long baud) {
+  // หยุดและถอด driver เดิม
+  twai_stop();
+  twai_driver_uninstall();
+  Serial.println("TWAI stopped and uninstalled");
 
-  twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
+  // กำหนด timing config ใหม่
+  twai_timing_config_t t_config;
+
+  if (baud == 1000000) {
+    t_config = TWAI_TIMING_CONFIG_1MBITS();
+  } else if (baud == 500000) {
+    t_config = TWAI_TIMING_CONFIG_500KBITS();
+  } else if (baud == 250000) {
+    t_config = TWAI_TIMING_CONFIG_250KBITS();
+  } else if (baud == 125000) {
+    t_config = TWAI_TIMING_CONFIG_125KBITS();
+  } else {
+    Serial.println("Unsupported baudrate!");
+    return;
+  }
+
+  // ติดตั้งใหม่
+  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(GPIO_NUM_4, GPIO_NUM_5, TWAI_MODE_NORMAL);
   twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
   if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
-    Serial.println("CAN driver installed");
+    Serial.println("TWAI driver re-installed");
   }
 
   if (twai_start() == ESP_OK) {
-    Serial.println("CAN started");
+    Serial.printf("TWAI started at %d kbps\n", baud);
   }
 }
 
@@ -44,7 +57,7 @@ void setupCAN() {
 void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     Serial.println("WebSocket client connected");
-    client->text("Connected to ESP32 CAN WebSocket");
+    // client->text("Connected to ESP32 CAN WebSocket");
   } else if (type == WS_EVT_DATA) {
     // ส่งข้อความผ่าน CAN จากข้อความที่ client ส่งมา
     String msg = "";
@@ -55,6 +68,8 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
     if (msg.startsWith("BAUD:")) {
         msg.replace("BAUD:", "");
         long new_baud = msg.toInt();
+        Serial.println("Change CAN baud to " + String(new_baud));
+        changeTWAIBaudrate(new_baud);
     }
 
     /*
@@ -76,9 +91,19 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
 void setup() {
   Serial.begin(115200);
 
+  Serial.println("Start...");
+
+  delay(2000);
+
   // WiFi Access Point
+  WiFi.disconnect();
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP(ssid);
   Serial.println("WiFi AP started");
+
+  // เริ่ม DNS: ทุกโดเมน → IP ESP32
+  dns.start(DNS_PORT, "*", apIP);
 
   // Start WebSocket
   ws.onEvent(onWebSocketEvent);
@@ -88,12 +113,11 @@ void setup() {
   });
   server.begin();
   Serial.println("WebSocket server started");
-
-  // Start CAN
-  setupCAN();
 }
 
 void loop() {
+  dns.processNextRequest();  // ให้ DNS server ทำงาน
+
   // รับ CAN frame แล้วส่งผ่าน WebSocket
   twai_message_t rx_msg;
   if (twai_receive(&rx_msg, pdMS_TO_TICKS(10)) == ESP_OK) {
@@ -102,6 +126,15 @@ void loop() {
       msg += String(rx_msg.data[i], HEX) + " ";
     }
     Serial.println(msg);
-    ws.textAll(msg);
+
+    size_t len = rx_msg.data_length_code + 2;
+    uint8_t buff[len];
+    memset(buff, 0, len);
+    buff[0] = (rx_msg.identifier >> 8) & 0xFF;
+    buff[1] = rx_msg.identifier & 0xFF;
+    for (int i=0;i<rx_msg.data_length_code;i++) {
+      buff[2 + i] = rx_msg.data[i];
+    }
+    ws.binaryAll(buff, len);
   }
 }

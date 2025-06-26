@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+Import("env")
 import os
 import re
 import subprocess
 import json
 import shutil
+# env.Execute("$PYTHONEXE -m pip install -vvv htmlmin")
+import htmlmin
 from datetime import datetime
-Import("env")
+
 
 PROJECT_DIR = env.subst("$PROJECT_DIR")
 
@@ -43,6 +46,7 @@ def gen_web():
         for f in fnames:
             file_path = os.path.join(dirpath, f)
             content = open(file_path, mode="r", encoding="utf-8").read()
+            content = htmlmin.minify(content)
             file_out = os.path.join(web_out_dir, f.replace(".", "_") + ".h")
             open(file_out, mode="w", encoding="utf-8", newline='').write("const char * " + f.replace(".", "_") + " = " + json.dumps(content) + ";")
 
