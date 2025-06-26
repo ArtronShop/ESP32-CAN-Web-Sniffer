@@ -45,6 +45,12 @@ wss.on('connection', (ws) => {
         if (message_str.startsWith("BAUD:")) {
             const baud = +message_str.replace("BAUD:", "");
             console.log("Change baud to " + baud);
+        } else {
+            const can_id = message[0] << 8 | message[1];
+            const can_data = message.subarray(2);
+            const hex = Array.from(can_data).map(a => a.toString(16).padStart(2, '0').toUpperCase()).join(" ");
+            // console.log(message, Array.from(message.subarray(2)));
+            console.log("Send: 0x" + can_id.toString(16).padStart(2, '3') + " " + hex);
         }
     });
 

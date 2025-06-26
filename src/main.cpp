@@ -70,21 +70,31 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
         long new_baud = msg.toInt();
         Serial.println("Change CAN baud to " + String(new_baud));
         changeTWAIBaudrate(new_baud);
-    }
-
-    /*
-    twai_message_t tx_msg;
-    tx_msg.identifier = 0x123;
-    tx_msg.flags.extended = 0;
-    tx_msg.data_length_code = msg.length() > 8 ? 8 : msg.length();
-    memcpy(tx_msg.data, msg.c_str(), tx_msg.data_length_code);
-
-    if (twai_transmit(&tx_msg, pdMS_TO_TICKS(100)) == ESP_OK) {
-      Serial.println("Sent CAN: " + msg);
     } else {
-      Serial.println("CAN TX failed");
+      twai_message_t tx_msg;
+      tx_msg.identifier = (data[0] << 8) | data[1];
+      tx_msg.extd = 0;
+      tx_msg.data_length_code = len - 2;
+      if (tx_msg.data_length_code > 0) {
+        memcpy(tx_msg.data, &data[2], tx_msg.data_length_code);
+      }
+
+      if (twai_transmit(&tx_msg, pdMS_TO_TICKS(100)) == ESP_OK) {
+        String payload = "";
+        for (int i=0;i<tx_msg.data_length_code;i++) {
+          if (tx_msg.data[i] < 0x10) {
+            payload += "0";
+          }
+          payload += String(tx_msg.data[i], HEX);
+          if (i != (tx_msg.data_length_code - 1)) {
+            payload += " ";
+          }
+        }
+        Serial.println("Sent CAN: 0x" + String(tx_msg.identifier, 16) + " " + payload);
+      } else {
+        Serial.println("CAN TX failed");
+      }
     }
-    */
   }
 }
 

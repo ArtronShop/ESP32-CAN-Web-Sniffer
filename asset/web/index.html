@@ -915,9 +915,25 @@
             }
 
             sendCANMessage() {
-                if (!this.isConnected || !this.validateInputs()) {
+                if (!this.isConnected) {
                     return;
                 }
+
+                let data = [];
+                
+                const canId = parseInt(this.canIdInput.value.trim(), 16);
+                data.push((canId >> 8) & 0xFF);
+                data.push((canId >> 0) & 0xFF);
+
+                const canData = this.canDataInput.value.trim().split(" ").map(a => parseInt(a, 16));
+                data = data.concat(canData);
+
+                data = new Uint8Array(data);
+
+                console.log("Send", data);
+                this.socket.send(data);
+
+                /*return;
 
                 const canId = this.canIdInput.value.trim();
                 const canData = this.canDataInput.value.trim();
@@ -954,7 +970,7 @@
                 // Clear inputs after sending
                 this.canIdInput.value = '';
                 this.canDataInput.value = '';
-                this.updateSendButtonState(true);
+                this.updateSendButtonState(true);*/
                 
                 // Show success feedback
                 const originalText = this.sendBtn.textContent;
