@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP32 CAN Web Sniffer</title>
-    <style>
+<style>
         * {
             margin: 0;
             padding: 0;
@@ -165,9 +165,8 @@
             letter-spacing: 0.5px;
             position: relative;
             overflow: hidden;
-            width: 200px;
-            margin: 0 auto;
-            display: inline-block;
+            /* width: 150px; */
+            margin-right: 15px;
         }
 
         .export-btn:hover {
@@ -199,7 +198,7 @@
 
         .clear-btn {
             padding: 15px 30px;
-            background: linear-gradient(45deg, #f44336, #d32f2f);
+            background: linear-gradient(45deg, #FF9800, #F57C00);
             color: white;
             border: none;
             border-radius: 12px;
@@ -211,14 +210,12 @@
             letter-spacing: 0.5px;
             position: relative;
             overflow: hidden;
-            width: 200px;
-            margin: 0 auto;
-            display: inline-block;
+            width: 150px;
         }
 
         .clear-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(244, 67, 54, 0.3);
+            box-shadow: 0 10px 25px rgba(255, 152, 0, 0.3);
         }
 
         .clear-btn:disabled {
@@ -241,6 +238,123 @@
 
         .clear-btn:hover::before {
             left: 100%;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .send-section {
+            background: rgba(102, 126, 234, 0.05);
+            border: 2px solid #e1e5e9;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .send-section h3 {
+            color: #333;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .send-controls {
+            display: grid;
+            grid-template-columns: 1fr 2fr 150px;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .send-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+            font-family: 'Courier New', monospace;
+        }
+
+        .send-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-input.invalid {
+            border-color: #f44336;
+            background-color: rgba(244, 67, 54, 0.05);
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(156, 39, 176, 0.3);
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .send-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.5s;
+        }
+
+        .send-btn:hover::before {
+            left: 100%;
+        }
+
+        .input-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .sent-message {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: rgba(156, 39, 176, 0.1);
+            border-left: 4px solid #9C27B0;
+            border-radius: 4px;
+            font-family: monospace;
+            animation: slideIn 0.3s ease;
         }
 
         .search-input {
@@ -347,6 +461,11 @@
                 grid-template-columns: 1fr;
                 gap: 20px;
             }
+
+            .send-controls {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
             
             .container {
                 padding: 20px;
@@ -354,6 +473,16 @@
             
             .header h1 {
                 font-size: 2rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .export-btn, .clear-btn {
+                width: 200px;
+                margin: 0;
             }
         }
     </style>
@@ -371,8 +500,8 @@
                 <div class="baud-selector">
                     <select id="baudRate">
                         <option value="125000">125 kbps</option>
-                        <option value="250000">250 kbps</option>
-                        <option value="500000"selected>500 kbps</option>
+                        <option value="250000" selected>250 kbps</option>
+                        <option value="500000">500 kbps</option>
                         <option value="1000000">1 Mbps</option>
                     </select>
                 </div>
@@ -399,8 +528,27 @@
 
         <div id="messageArea" class="message-area"></div>
 
-        <button id="exportBtn" class="export-btn">Export CSV</button>
-        <button id="clearBtn" class="clear-btn">Clear</button>
+        <div class="action-buttons">
+            <button id="exportBtn" class="export-btn">Export CSV</button>
+            <button id="clearBtn" class="clear-btn">Clear</button>
+        </div>
+
+        <div class="send-section">
+            <h3>Send CAN Message</h3>
+            <div class="send-controls">
+                <div>
+                    <label class="input-label" for="canId">CAN ID (Hex)</label>
+                    <input type="text" id="canId" class="send-input" placeholder="123" maxlength="3">
+                </div>
+                <div>
+                    <label class="input-label" for="canData">Data (Hex)</label>
+                    <input type="text" id="canData" class="send-input" placeholder="AA BB CC DD EE FF 00 11" maxlength="23">
+                </div>
+                <div>
+                    <button id="sendBtn" class="send-btn">Send</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -424,6 +572,9 @@
                 this.searchInput = document.getElementById('searchInput');
                 this.exportBtn = document.getElementById('exportBtn');
                 this.clearBtn = document.getElementById('clearBtn');
+                this.canIdInput = document.getElementById('canId');
+                this.canDataInput = document.getElementById('canData');
+                this.sendBtn = document.getElementById('sendBtn');
                 this.statusDot = document.getElementById('statusDot');
                 this.statusText = document.getElementById('statusText');
                 this.messageCountElement = document.getElementById('messageCount');
@@ -434,7 +585,10 @@
                 this.connectBtn.addEventListener('click', () => this.toggleConnection());
                 this.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
                 this.exportBtn.addEventListener('click', () => this.exportToCSV());
-                this.clearBtn.addEventListener('click', () => this.clearData());
+                this.clearBtn.addEventListener('click', () => this.clearMessages());
+                this.sendBtn.addEventListener('click', () => this.sendCANMessage());
+                this.canIdInput.addEventListener('input', () => this.validateInputs());
+                this.canDataInput.addEventListener('input', () => this.validateInputs());
                 this.baudRateSelect.addEventListener('change', () => this.handleBaudRateChange());
             }
 
@@ -555,8 +709,9 @@
                 this.messageCount++;
                 this.messageCountElement.textContent = `Messages: ${this.messageCount}`;
                 
-                // Enable export button when we have messages
+                // Enable export and clear buttons when we have messages
                 this.exportBtn.disabled = false;
+                this.clearBtn.disabled = false;
                 
                 // Keep only last 100 messages for performance
                 if (this.messages.length > 100) {
@@ -651,15 +806,165 @@
                 }, 2000);
             }
 
-            clearData() {
+            clearMessages() {
                 this.messages = [];
+                this.filteredMessages = [];
                 this.messageCount = 0;
-                this.messageCountElement.textContent = `Messages: ${this.messageCount}`;
+                this.messageCountElement.textContent = 'Messages: 0';
+                this.messageArea.classList.remove('has-content');
+                this.messageArea.innerHTML = '';
                 
-                // Disable export button when we don't have messages
+                // Disable export and clear buttons
                 this.exportBtn.disabled = true;
+                this.clearBtn.disabled = true;
                 
-                this.filterAndDisplayMessages();
+                // Show success feedback
+                const originalText = this.clearBtn.textContent;
+                this.clearBtn.textContent = 'Cleared!';
+                this.clearBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+                
+                setTimeout(() => {
+                    this.clearBtn.textContent = originalText;
+                    this.clearBtn.style.background = 'linear-gradient(45deg, #FF9800, #F57C00)';
+                }, 1500);
+            }
+
+            formatAndValidateHexInput(inputString) {
+                console.log(inputString);
+
+                // 1. ลบเว้นวรรคที่มีอยู่ทั้งหมดออกก่อน และ trim ช่องว่างหัวท้าย
+                let cleanedInput = inputString.replace(/\s+/g, '').trim();
+
+                // ถ้า input ว่างเปล่า ให้คืนค่าว่างและสถานะไม่ถูกต้อง
+                if (cleanedInput.length === 0) {
+                    return {
+                        isValid: false,
+                        formattedHex: '',
+                        message: '' // ไม่มีข้อความเมื่อ input ว่าง
+                    };
+                }
+
+                // 2. ตรวจสอบความยาวของสตริง Hex
+                // แต่ละไบต์มี 2 หลัก ดังนั้นความยาวต้องเป็นเลขคู่
+                // และต้องไม่เกิน 16 หลัก (8 ไบต์ * 2 หลัก/ไบต์)
+                /* if (cleanedInput.length % 2 !== 0 || cleanedInput.length > 16) {
+                    return {
+                        isValid: false,
+                        formattedHex: '',
+                        message: 'ความยาวของ Hex ไม่ถูกต้อง (ต้องเป็นเลขคู่และไม่เกิน 16 หลัก)'
+                    };
+                } */
+
+                // 3. ตรวจสอบว่าเป็น Hex Character ที่ถูกต้องหรือไม่ (0-9, a-f, A-F)
+                const hexCharRegex = /^[0-9a-fA-F]+$/;
+                if (!hexCharRegex.test(cleanedInput)) {
+                    return {
+                        isValid: false,
+                        formattedHex: '',
+                        message: 'มีตัวอักษรที่ไม่ใช่ Hex อยู่ในข้อมูล (ใช้ได้เฉพาะ 0-9, A-F, a-f)'
+                    };
+                }
+
+                // 4. แบ่งสตริง Hex ออกเป็นไบต์ และเพิ่มเว้นวรรค
+                let formattedBytes = [];
+                for (let i = 0; i < cleanedInput.length; i += 2) {
+                    formattedBytes.push(cleanedInput.substring(i, i + 2));
+                }
+
+                // รวมไบต์เข้าด้วยกันโดยคั่นด้วยเว้นวรรค และแปลงเป็นตัวพิมพ์ใหญ่
+                let formattedHex = formattedBytes.join(' ').toUpperCase();
+
+                return {
+                    isValid: true,
+                    formattedHex: formattedHex,
+                    message: 'ข้อมูล Hex ถูกต้องและจัดรูปแบบแล้ว'
+                };
+            }
+
+            validateInputs() {
+                const canId = this.canIdInput.value.trim();
+                // const canData = this.canDataInput.value.trim();
+                const canData = this.canDataInput.value;
+
+                // Validate CAN ID (hex format)
+                const idValid = /^0x[0-9A-Fa-f]{1,3}$/.test(canId) || /^[0-9A-Fa-f]{1,3}$/.test(canId);
+                
+                /*// Validate data (hex bytes separated by spaces)
+                const dataValid = canData === '' || /^([0-9A-Fa-f]{2}(\s+|$))*$/.test(canData);
+                const dataBytes = canData ? canData.split(/\s+/).filter(b => b.length > 0) : [];
+                const lengthValid = dataBytes.length <= 8;*/
+
+                const result = this.formatAndValidateHexInput(canData);
+
+                this.canIdInput.value = this.canIdInput.value.toUpperCase();
+                this.canDataInput.value = result.formattedHex;
+                
+                // Update input styling
+                this.canIdInput.classList.toggle('invalid', !idValid);
+                this.canDataInput.classList.toggle('invalid', !result.isValid);
+                
+                this.updateSendButtonState(idValid && result.isValid);
+                
+                // return idValid && dataValid && lengthValid;
+            }
+
+            updateSendButtonState(inputsValid) {
+                // const inputsValid = this.validateInputs();
+                const hasId = this.canIdInput.value.trim() !== '';
+                this.sendBtn.disabled = !this.isConnected || !inputsValid || !hasId;
+            }
+
+            sendCANMessage() {
+                if (!this.isConnected || !this.validateInputs()) {
+                    return;
+                }
+
+                const canId = this.canIdInput.value.trim();
+                const canData = this.canDataInput.value.trim();
+                
+                // Format CAN ID
+                let formattedId = canId;
+                if (!canId.startsWith('0x')) {
+                    formattedId = '0x' + canId.toUpperCase();
+                }
+                
+                // Format data
+                const dataBytes = canData ? canData.split(/\s+/).filter(b => b.length > 0) : [];
+                const formattedData = dataBytes.map(b => b.toUpperCase()).join(' ');
+                
+                // Create sent message
+                const timestamp = new Date().toLocaleTimeString('th-TH', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit',
+                    fractionalSecondDigits: 3
+                });
+                
+                const sentMessage = {
+                    timestamp,
+                    id: formattedId,
+                    data: formattedData,
+                    raw: `${timestamp} ${formattedId} [${dataBytes.length}] ${formattedData} [SENT]`,
+                    sent: true
+                };
+                
+                this.addMessage(sentMessage);
+                
+                // Clear inputs after sending
+                this.canIdInput.value = '';
+                this.canDataInput.value = '';
+                this.updateSendButtonState(true);
+                
+                // Show success feedback
+                const originalText = this.sendBtn.textContent;
+                this.sendBtn.textContent = 'Sent!';
+                this.sendBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+                
+                setTimeout(() => {
+                    this.sendBtn.textContent = originalText;
+                    this.sendBtn.style.background = 'linear-gradient(45deg, #9C27B0, #7B1FA2)';
+                }, 1000);
             }
 
             startSimulation() {
