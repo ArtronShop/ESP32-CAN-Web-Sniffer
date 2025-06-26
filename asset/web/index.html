@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 CAN Web Sniffer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            transition: all 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 35px 70px rgba(0, 0, 0, 0.25);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .baud-selector {
+            position: relative;
+        }
+
+        .baud-selector select {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            padding-right: 45px;
+        }
+
+        .baud-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .connect-btn {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .connect-btn.connected {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+
+        .connect-btn.connected:hover {
+            box-shadow: 0 10px 25px rgba(244, 67, 54, 0.3);
+        }
+
+        .connect-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.5s;
+        }
+
+        .connect-btn:hover::before {
+            left: 100%;
+        }
+
+        .export-btn {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            width: 200px;
+            margin: 0 auto;
+            display: inline-block;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(33, 150, 243, 0.3);
+        }
+
+        .export-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .export-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.5s;
+        }
+
+        .export-btn:hover::before {
+            left: 100%;
+        }
+
+        .clear-btn {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            width: 200px;
+            margin: 0 auto;
+            display: inline-block;
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(244, 67, 54, 0.3);
+        }
+
+        .clear-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .clear-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.5s;
+        }
+
+        .clear-btn:hover::before {
+            left: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f44336;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #4CAF50;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .message-area {
+            background: #f8f9fa;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #333;
+            overflow-y: auto;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .message-area::before {
+            content: 'CAN Messages will appear here...';
+            color: #999;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-style: italic;
+        }
+
+        .message-area.has-content::before {
+            display: none;
+        }
+
+        .can-message {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-family: monospace;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CAN Sniffer</h1>
+            <p>Monitor and analyze CAN bus messages in real-time</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="baudRate">Baud Rate</label>
+                <div class="baud-selector">
+                    <select id="baudRate">
+                        <option value="125000">125 kbps</option>
+                        <option value="250000">250 kbps</option>
+                        <option value="500000"selected>500 kbps</option>
+                        <option value="1000000">1 Mbps</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Connection</label>
+                <button id="connectBtn" class="connect-btn">Connect</button>
+            </div>
+
+            <div class="control-group">
+                <label for="searchInput">Search Filter</label>
+                <input type="text" id="searchInput" class="search-input" placeholder="Enter CAN ID or data...">
+            </div>
+        </div>
+
+        <div class="status">
+            <div class="status-indicator">
+                <div id="statusDot" class="status-dot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <div id="messageCount">Messages: 0</div>
+        </div>
+
+        <div id="messageArea" class="message-area"></div>
+
+        <button id="exportBtn" class="export-btn">Export CSV</button>
+        <button id="clearBtn" class="clear-btn">Clear</button>
+    </div>
+
+    <script>
+        class CANSniffer {
+            constructor() {
+                this.isConnected = false;
+                this.messageCount = 0;
+                this.messages = [];
+                this.filteredMessages = [];
+                this.searchFilter = '';
+                this.socket = null;
+                
+                this.initializeElements();
+                this.bindEvents();
+                // this.startSimulation();
+            }
+
+            initializeElements() {
+                this.baudRateSelect = document.getElementById('baudRate');
+                this.connectBtn = document.getElementById('connectBtn');
+                this.searchInput = document.getElementById('searchInput');
+                this.exportBtn = document.getElementById('exportBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.statusDot = document.getElementById('statusDot');
+                this.statusText = document.getElementById('statusText');
+                this.messageCountElement = document.getElementById('messageCount');
+                this.messageArea = document.getElementById('messageArea');
+            }
+
+            bindEvents() {
+                this.connectBtn.addEventListener('click', () => this.toggleConnection());
+                this.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
+                this.exportBtn.addEventListener('click', () => this.exportToCSV());
+                this.clearBtn.addEventListener('click', () => this.clearData());
+                this.baudRateSelect.addEventListener('change', () => this.handleBaudRateChange());
+            }
+
+            toggleConnection() {
+                this.isConnected = !this.isConnected;
+                
+                if (this.isConnected) {
+                    this.connect();
+                } else {
+                    this.disconnect();
+                }
+            }
+
+            connect() {
+                this.connectBtn.textContent = 'Disconnect';
+                this.connectBtn.classList.add('connected');
+                this.statusDot.classList.add('connected');
+                this.statusText.textContent = `Connected (${this.baudRateSelect.value} bps)`;
+
+                this.socket = new WebSocket('ws://localhost:3000/ws');
+                this.socket.onopen = () => this.connected();
+                this.socket.onmessage = (e) => this.messageIn(e);
+                this.socket.onclose = () => this.close();
+            }
+
+            connected() {
+                console.log("WebSocket connection established");
+
+                this.statusText.textContent = `Connected - Monitoring at ${this.baudRateSelect.value} bps`;
+
+                this.handleBaudRateChange();
+            }
+
+            async messageIn(event) {
+                console.log("Message from server:", event.data);
+
+                const socket_data = new Uint8Array(await event.data.arrayBuffer());
+                console.log(socket_data);
+
+                const id = "0x" + ((socket_data[0] << 8) | socket_data[1]).toString(16).padStart(2, '0').toUpperCase();
+                const dataLength = socket_data.length - 2;
+                const data = socket_data.slice(2).map(a => a.toString(16).padStart(2, '0').toUpperCase());
+
+
+                const timestamp = new Date().toLocaleTimeString('th-TH', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    fractionalSecondDigits: 3
+                });
+
+                const message = {
+                    timestamp,
+                    id,
+                    data: data.join(' '),
+                    raw: `${timestamp} ${id} [${dataLength}] ${data.join(' ')}`
+                };
+
+                this.addMessage(message);
+            }
+
+            disconnect() {
+                this.connectBtn.textContent = 'Connect';
+                this.connectBtn.classList.remove('connected');
+                this.statusDot.classList.remove('connected');
+                this.statusText.textContent = 'Disconnected';
+
+                this.socket.close();
+                this.socket = null;
+            }
+
+            close() {
+                console.log("WebSocket connection closed");
+            }
+
+            handleBaudRateChange() {
+                if (this.isConnected) {
+                    this.statusText.textContent = `Connected - Monitoring at ${this.baudRateSelect.value} bps`;
+
+                    this.socket.send("BAUD:" + this.baudRateSelect.value);
+                }
+            }
+
+            handleSearch(searchTerm) {
+                this.searchFilter = searchTerm.toLowerCase();
+                this.filterAndDisplayMessages();
+            }
+
+            generateRandomCANMessage(canId) {
+                const canIds = ['0x123', '0x456', '0x789', '0xABC', '0xDEF', '0x111', '0x222', '0x333'];
+                const randomId = canIds[Math.floor(Math.random() * canIds.length)];
+                const dataLength = Math.floor(Math.random() * 8) + 1;
+                const data = [];
+                
+                for (let i = 0; i < dataLength; i++) {
+                    data.push(Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase());
+                }
+                
+                const timestamp = new Date().toLocaleTimeString('th-TH', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit',
+                    fractionalSecondDigits: 3
+                });
+                
+                return {
+                    timestamp,
+                    id: randomId,
+                    data: data.join(' '),
+                    raw: `${timestamp} ${randomId} [${dataLength}] ${data.join(' ')}`
+                };
+            }
+
+            addMessage(message) {
+                this.messages.unshift(message);
+                this.messageCount++;
+                this.messageCountElement.textContent = `Messages: ${this.messageCount}`;
+                
+                // Enable export button when we have messages
+                this.exportBtn.disabled = false;
+                
+                // Keep only last 100 messages for performance
+                if (this.messages.length > 100) {
+                    this.messages = this.messages.slice(0, 100);
+                }
+                
+                this.filterAndDisplayMessages();
+            }
+
+            filterAndDisplayMessages() {
+                this.filteredMessages = this.messages.filter(message => {
+                    if (!this.searchFilter) return true;
+                    return message.raw.toLowerCase().includes(this.searchFilter);
+                });
+                
+                this.displayMessages();
+            }
+
+            displayMessages() {
+                if (this.filteredMessages.length === 0 && this.messages.length === 0) {
+                    this.messageArea.classList.remove('has-content');
+                    this.messageArea.innerHTML = '';
+                    return;
+                }
+                
+                this.messageArea.classList.add('has-content');
+                this.messageArea.innerHTML = this.filteredMessages
+                    .slice(0, 50) // Show only first 50 filtered messages
+                    .map(message => `<div class="can-message">${message.raw}</div>`)
+                    .join('');
+            }
+
+            exportToCSV() {
+                if (this.messages.length === 0) {
+                    alert('ไม่มีข้อมูลให้ Export');
+                    return;
+                }
+
+                // Create CSV header
+                const csvHeader = 'Timestamp,CAN ID,Data Length,Data,Raw Message\n';
+                
+                // Convert messages to CSV format
+                const csvData = this.messages.map(message => {
+                    // Parse the raw message to extract components
+                    const parts = message.raw.split(' ');
+                    const timestamp = parts[0];
+                    const canId = parts[1];
+                    const dataLength = parts[2].replace(/[\[\]]/g, ''); // Remove brackets
+                    const data = parts.slice(3).join(' ');
+                    
+                    // Escape commas and quotes in data
+                    const escapedData = `"${data.replace(/"/g, '""')}"`;
+                    const escapedRaw = `"${message.raw.replace(/"/g, '""')}"`;
+                    
+                    return `${timestamp},${canId},${dataLength},${escapedData},${escapedRaw}`;
+                }).join('\n');
+
+                // Combine header and data
+                const csvContent = csvHeader + csvData;
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    
+                    // Generate filename with timestamp
+                    const now = new Date();
+                    const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                    link.setAttribute('download', `CAN_Messages_${timestamp}.csv`);
+                    
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Show success message
+                    this.showExportSuccess();
+                }
+            }
+
+            showExportSuccess() {
+                const originalText = this.exportBtn.textContent;
+                this.exportBtn.textContent = 'Exported!';
+                this.exportBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+                
+                setTimeout(() => {
+                    this.exportBtn.textContent = originalText;
+                    this.exportBtn.style.background = 'linear-gradient(45deg, #2196F3, #1976D2)';
+                }, 2000);
+            }
+
+            clearData() {
+                this.messages = [];
+                this.messageCount = 0;
+                this.messageCountElement.textContent = `Messages: ${this.messageCount}`;
+                
+                // Disable export button when we don't have messages
+                this.exportBtn.disabled = true;
+                
+                this.filterAndDisplayMessages();
+            }
+
+            startSimulation() {
+                setInterval(() => {
+                    if (this.isConnected) {
+                        const message = this.generateRandomCANMessage();
+                        this.addMessage(message);
+                    }
+                }, Math.random() * 2000 + 500); // Random interval between 500ms - 2.5s
+            }
+        }
+
+        // Initialize the CAN Sniffer when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const sniffer = new CANSniffer();
+            
+            // Initially disable export button
+            sniffer.exportBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>
