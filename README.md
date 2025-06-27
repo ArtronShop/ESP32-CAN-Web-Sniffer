@@ -29,19 +29,21 @@ A web-based CAN bus sniffer using the ESP32 microcontroller. This project allows
     ```
 3. Open the project in your IDE (PlatformIO).
 4. Upload the firmware to your ESP32.
-5. To run tests (not request ESP32 hardware), execute the following command in the project directory:
-    ```bash
-    # Install dependent
-    npm i
+5. Power on the ESP32 and connect to the ESP32 over WiFi with name `ESP32-CAN`.
+6. Open a web browser and navigate to the ESP32's IP address 192.168.4.1
+7. View and analyze CAN messages in real time.
 
-    # Start web server
-    node test.js
-    ```
-6. After running the tests, go to [http://localhost:3000](http://localhost:3000) in your web browser to start the test.
+## Run Test
 
-- Power on the ESP32 and connect to the ESP32 over WiFi with name `ESP32-CAN`.
-- Open a web browser and navigate to the ESP32's IP address 192.168.4.1
-- View and analyze CAN messages in real time.
+To run tests (not request ESP32 hardware), execute the following command in the project directory:
+```bash
+# Install dependent
+npm i
+
+# Start web server
+node test.js
+```
+After running the web server, go to [http://localhost:3000](http://localhost:3000) in your web browser to start the test.
 
 ## License
 
