@@ -31,6 +31,10 @@ A web-based CAN bus sniffer using the ESP32 microcontroller. This project allows
 4. Upload the firmware to your ESP32.
 5. To run tests (not request ESP32 hardware), execute the following command in the project directory:
     ```bash
+    # Install dependent
+    npm i
+
+    # Start web server
     node test.js
     ```
 6. After running the tests, go to [http://localhost:3000](http://localhost:3000) in your web browser to start the test.
