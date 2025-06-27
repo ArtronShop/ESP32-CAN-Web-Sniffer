@@ -9,11 +9,10 @@ A web-based CAN bus sniffer using the ESP32 microcontroller. This project allows
 - Filter and search CAN messages
 - Data logging and export options
 
-## Hardware Requirements
+## Hardware Recommended
 
-- ESP32 development board
-- CAN transceiver (e.g., MCP2551, SN65HVD230)
-- Jumper wires and breadboard (optional)
+ - [IOXESP32 (ESP32 Dev Board)](https://www.artronshop.co.th/p/59) + [IOXESP32 CAN bus shield](https://www.artronshop.co.th/p/26) - Connect the A, B wires manually.
+ - [ESP-OBD2](https://www.artronshop.co.th/p/733) - ESP32 with OBD2 connector (CAN bus) connect it to your car then ready to sniffer !
 
 ## Software Requirements
 
