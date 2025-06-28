@@ -630,7 +630,7 @@
 
                 const id = "0x" + ((socket_data[0] << 8) | socket_data[1]).toString(16).padStart(2, '0').toUpperCase();
                 const dataLength = socket_data.length - 2;
-                const data = socket_data.slice(2).map(a => a.toString(16).padStart(2, '0').toUpperCase());
+                const data = Array.from(socket_data.slice(2)).map(a => a.toString(16).padStart(2, '0').toUpperCase());
 
 
                 const timestamp = new Date().toLocaleTimeString('th-TH', {

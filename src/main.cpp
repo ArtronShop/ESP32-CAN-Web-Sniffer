@@ -41,7 +41,7 @@ void changeTWAIBaudrate(long baud) {
   }
 
   // ติดตั้งใหม่
-  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(GPIO_NUM_4, GPIO_NUM_5, TWAI_MODE_NORMAL);
+  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(GPIO_NUM_26, GPIO_NUM_27, TWAI_MODE_NORMAL);
   twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
   if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
@@ -58,6 +58,8 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
   if (type == WS_EVT_CONNECT) {
     Serial.println("WebSocket client connected");
     // client->text("Connected to ESP32 CAN WebSocket");
+
+    client->setCloseClientOnQueueFull(false);
   } else if (type == WS_EVT_DATA) {
     // ส่งข้อความผ่าน CAN จากข้อความที่ client ส่งมา
     String msg = "";
